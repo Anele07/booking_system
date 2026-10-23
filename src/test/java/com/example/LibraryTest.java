@@ -97,5 +97,36 @@ public class LibraryTest {
 
         assertEquals(1, overdue.size());
     }
+
+    @Test
+    public void testBookCannotBeLoanedTwiceUntilReturned() {
+        Library library = new Library();
+        library.addBook(new Book("Dune", "Frank Herbert", "ISBN456", 1965));
+        library.registerMember(new Member("Bob", "M002"));
+        library.registerMember(new Member("Alice", "M001"));
+        LocalDate loanDate = LocalDate.now();
+
+        library.loanBook("ISBN456", "M002", loanDate, loanDate.plusDays(14));
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> library.loanBook("ISBN456", "M001", loanDate, loanDate.plusDays(14)));
+        assertEquals("Book with ISBN ISBN456 is already on loan.", exception.getMessage());
+    }
+
+    @Test
+    public void testReturningBookMakesItAvailableAgain() {
+        Library library = new Library();
+        library.addBook(new Book("Dune", "Frank Herbert", "ISBN456", 1965));
+        library.registerMember(new Member("Bob", "M002"));
+        LocalDate loanDate = LocalDate.now();
+        Loan loan = library.loanBook("ISBN456", "M002", loanDate, loanDate.plusDays(14));
+
+        Loan returnedLoan = library.returnBook("ISBN456", "M002", loanDate.plusDays(2));
+
+        assertSame(loan, returnedLoan);
+        assertTrue(returnedLoan.isReturned());
+        assertTrue(library.isBookAvailable("ISBN456"));
+        assertTrue(library.getActiveLoans().isEmpty());
+    }
 }
 

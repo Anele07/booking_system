@@ -4,9 +4,9 @@ import java.time.LocalDate;
 import java.util.*;
 
 public class Library {
-    private Map<String, Book> books;
-    private Map<String, Member> members;
-    private List<Loan> loans;
+    private final Map<String, Book> books;
+    private final Map<String, Member> members;
+    private final List<Loan> loans;
 
     public Library() {
         books = new HashMap<>();
@@ -15,11 +15,25 @@ public class Library {
     }
 
     public void addBook(Book book) {
+        if (books.containsKey(book.getIsbn())) {
+            throw new IllegalArgumentException("A book with ISBN " + book.getIsbn() + " already exists.");
+        }
         books.put(book.getIsbn(), book);
     }
 
     public void registerMember(Member member) {
+        if (members.containsKey(member.getMemberID())) {
+            throw new IllegalArgumentException("A member with ID " + member.getMemberID() + " already exists.");
+        }
         members.put(member.getMemberID(), member);
+    }
+
+    public List<Book> getAllBooks() {
+        return new ArrayList<>(books.values());
+    }
+
+    public List<Member> getAllMembers() {
+        return new ArrayList<>(members.values());
     }
 
     public Book findBookByIsbn(String isbn) {
@@ -42,6 +56,10 @@ public class Library {
             throw new IllegalArgumentException("Member with ID " + memberId + " not found.");
         }
 
+        if (!isBookAvailable(isbn)) {
+            throw new IllegalArgumentException("Book with ISBN " + isbn + " is already on loan.");
+        }
+
         Loan loan = new Loan(book, member, loanDate, dueDate);
         loans.add(loan);
         member.addLoan(loan);
@@ -51,6 +69,37 @@ public class Library {
 
     public List<Loan> getAllLoans() {
         return new ArrayList<>(loans);
+    }
+
+    public List<Loan> getActiveLoans() {
+        List<Loan> activeLoans = new ArrayList<>();
+        for (Loan loan : loans) {
+            if (!loan.isReturned()) {
+                activeLoans.add(loan);
+            }
+        }
+        return activeLoans;
+    }
+
+    public boolean isBookAvailable(String isbn) {
+        for (Loan loan : loans) {
+            if (!loan.isReturned() && loan.getBook().getIsbn().equals(isbn)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public Loan returnBook(String isbn, String memberId, LocalDate returnDate) {
+        for (Loan loan : loans) {
+            if (!loan.isReturned()
+                    && loan.getBook().getIsbn().equals(isbn)
+                    && loan.getMemberID().getMemberID().equals(memberId)) {
+                loan.markReturned(returnDate);
+                return loan;
+            }
+        }
+        throw new IllegalArgumentException("No active loan found for ISBN " + isbn + " and member " + memberId + ".");
     }
 
     public List<Loan> getOverdueLoans(LocalDate currentDate) {
